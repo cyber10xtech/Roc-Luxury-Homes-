@@ -1,0 +1,48 @@
+name: Extract and Delete ZIP Files
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  unzip-and-clean:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract ZIPs and Remove Originals
+        run: |
+          # Find all zip files in the repository
+          shopt -s globstar
+          zips=( **/*.zip )
+          
+          if [ ${#zips[@]} -eq 0 ] || [ ! -e "${zips[0]}" ]; then
+            echo "No ZIP files found."
+            exit 0
+          fi
+
+          for zip in "${zips[@]}"; do
+            echo "Processing $zip..."
+            # Get the directory path of the zip file
+            dir=$(dirname "$zip")
+            
+            # Extract to the same directory
+            unzip -o "$zip" -d "$dir"
+            
+            # Delete the original zip file
+            rm "$zip"
+          done
+
+      - name: Commit and Push Changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Automated: Extract ZIP files and remove originals"
+          file_pattern: '*'
+          
